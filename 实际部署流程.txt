@@ -1,0 +1,496 @@
+E:\API-Service\        【本地：E盘】
+↓ 部署到云端后变成 ↓
+/root/API-Service/     【云端：正式运行路径 · 以此为准】
+
+├── app.js                          # 主入口（最终集成版）
+├── package.json
+├── package-lock.json
+├── .gitignore
+├── .env                            # 环境变量（微信支付+邮箱密钥，本地/云端都用这个）
+├── apiclient_cert.pem              # 微信支付商户证书（根目录）
+├── apiclient_key.pem               # 微信支付商户私钥（根目录）
+├── pub_key.pem                     # 微信支付平台公钥（根目录）
+│
+├── config/                         # 配置目录
+│   ├── wechat.js                  # 微信支付配置（已按云端路径修正）
+│   ├── api_keys.json
+│   └── paymentConfig.js
+│
+├── services/
+│   ├── wechat/
+│   │   ├── payment.js
+│   │   ├── callback.js
+│   │   └── query.js
+│   ├── order/
+│   │   ├── manager.js
+│   │   └── validator.js
+│   ├── license/
+│   │   ├── generator.js
+│   │   └── storage.js
+│   └── email/
+│       └── sender.js
+│
+├── routes/
+│   ├── alipay.js
+│   ├── wechat.js
+│   └── order.js
+│
+├── public/
+│   ├── index.html
+│   ├── pay.html
+│   ├── success.html
+│   └── static/
+│       ├── css/
+│       ├── js/
+│       └── images/
+│
+├── ssl/
+│   ├── lingyunai.cn.key
+│   └── lingyunai.cn_bundle.crt
+│
+├── database/
+│   ├── orders/
+│   ├── callbacks/
+│   └── licenses/
+│
+├── logs/
+│   ├── payments.log
+│   ├── queries.log
+│   └── deliveries.log
+│
+└── docs/
+    ├── 方案说明.md
+    ├── API接口文档.md
+    └── 部署指南.md
+
+✅ 项目一：支付与自动发货基石
+目标：搭建能 7×24 小时自动收钱、发货、发邮件的商业闭环。
+范围：微信支付配置、订单查询、文件持久化、密钥生成、邮件服务、用户中心、健康检查、部署准备。
+状态：已完成（16 张任务卡片全部交付）。
+产出：一个 “能呼吸” 的睡后收入骨架。
+🟡 项目二：产品功能落地
+目标：解决 “用户购买后去哪里用” 的体验断层，让现有支付闭环产生真实现金流。
+范围：API 调用门户、短链接服务 MVP、密钥管理面板、邮件模板优化、全链路体验测试。
+预期工期：1-2 天（基于你的节奏）。
+关键产出：用户购买后 5 分钟内能开始使用服务。
+🔵 项目三：增长引擎搭建
+目标：建立 “免费引流→付费转化” 的增长循环，解决 “从哪里来用户” 问题。
+范围：免费工具三件套（IP 查询、二维码生成、文本对比）、短链接付费转化优化、基础 SEO 配置。
+预期工期：1-2 天。
+关键产出：日均自然流量≥50UV 的获客漏斗。
+🟣 项目四：高价值服务扩展
+目标：引入高需求、高客单价服务，从 “日入 50 元” 向 “日入 200 元” 突破。
+范围：拼多多数据服务（商品监控、价格趋势）、强制注册系统、账户仪表盘升级。
+预期工期：2-3 天（因涉及外部 API 对接）。
+关键产出：客单价≥99 元的新收入线。
+⚪ 项目五：系统优化与本地部署准备
+目标：提升系统稳定性，为 “3090 本地部署计划” 铺路（按财务现实后延）。
+范围：健康监控面板、安全加固、电路改造方案、3090 采购预研。
+预期工期：可与其他项目并行，不占主线程。
+关键产出：本地部署路径清晰，可随时启动升级。
+
+
+
+任务卡片01：微信支付配置独立
+
+· 目标：将微信支付核心配置从 app.js 中抽离为独立模块，实现配置与业务逻辑分离，便于维护和环境切换。
+· 前置条件：项目根目录下存在 app.js，且已包含微信支付商户号、证书路径、APIv3密钥等硬编码配置。
+· 具体步骤：
+  1. 在 config/ 目录下创建 wechat.js 文件。
+  2. 将 app.js 中 CONFIG.WXPAY 对象完整复制到 config/wechat.js 中，并修改为 module.exports = { ... } 导出。
+  3. 在 app.js 中删除原有 CONFIG.WXPAY 定义，通过 const wechatConfig = require('./config/wechat'); 引入配置。
+  4. 将所有引用 CONFIG.WXPAY 的地方替换为 wechatConfig。
+  5. 确保 app.js 中读取证书文件路径使用 wechatConfig.PRIVATE_KEY_PATH 等动态路径。
+· 输出/验证：
+  · 文件 config/wechat.js 存在且包含完整微信支付配置。
+  · app.js 无硬编码商户号、APIv3密钥等敏感信息。
+  · 启动服务，访问 /api/exchange 返回的商户号、AppID 与配置一致。
+· 关联任务：卡片02、卡片03、卡片04
+
+---
+
+任务卡片02：微信订单查询服务
+
+· 目标：封装微信支付V3订单查询API，实现通过商户订单号主动获取支付状态、金额、微信交易号等关键信息，为自动发货提供数据支撑。
+· 前置条件：卡片01已完成，微信支付配置独立，商户私钥证书可用。
+· 具体步骤：
+  1. 创建 services/wechat/query.js 文件。
+  2. 引入 wechatConfig、crypto、https 等依赖。
+  3. 读取商户私钥，生成 PRIVATE_KEY_OBJ（可复用 app.js 中的代码）。
+  4. 实现签名生成函数 generateSignature(method, url, timestamp, nonce, body = '')。
+  5. 实现 queryOrder(outTradeNo) 函数：
+     · 构造请求URL：/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${wechatConfig.MCHID}
+     · 生成时间戳、随机串、签名，组装 Authorization 头。
+     · 发起HTTPS GET请求，解析返回JSON。
+     · 返回对象包含 outTradeNo、transactionId、tradeState、amount、successTime、payerOpenid。
+  6. 添加错误处理和重试机制（失败后3秒、10秒重试，可在后续卡片完善）。
+· 输出/验证：
+  · 文件 services/wechat/query.js 存在且导出 queryOrder 函数。
+  · 使用已支付订单号测试，能正确返回金额、状态等数据。
+· 关联任务：卡片04、卡片03
+
+---
+
+任务卡片03：订单管理服务（文件存储）
+
+· 目标：将订单从内存 Map 迁移到文件系统持久化存储，提供订单的创建、查询、更新接口，支持按用户ID获取订单列表。
+· 前置条件：卡片01已完成，项目已规划 database/orders/ 目录。
+· 具体步骤：
+  1. 创建 services/order/manager.js 文件。
+  2. 定义订单存储目录 ORDERS_DIR = path.join(__dirname, '../../database/orders')。
+  3. 实现 ensureOrdersDir() 确保目录存在。
+  4. 实现 generateOrderNo() 生成唯一订单号（格式 PAY${Date.now()}${随机串}）。
+  5. 实现 createOrder(orderData)：
+     · 生成订单号（若未提供）。
+     · 组装订单对象（包含 orderNo、userId、amount、plan、status、createTime、codeUrl、qrCodeImage 等）。
+     · 写入 orders/${orderNo}.json 文件。
+  6. 实现 getOrder(orderNo) 读取对应JSON文件，返回对象或 null。
+  7. 实现 updateOrder(orderNo, updates) 合并更新并写回文件。
+  8. 实现 updateOrderStatus(orderNo, status, additionalData) 快捷更新状态。
+  9. 实现 getOrdersByUserId(userId) 遍历所有订单文件，筛选指定用户订单并按时间倒序。
+  10. 实现 getLatestOrderByUserId(userId) 获取该用户最近一笔订单。
+· 输出/验证：
+  · 文件 services/order/manager.js 存在并导出所有方法。
+  · 调用 createOrder 后，database/orders/ 目录下生成对应JSON文件，内容完整。
+  · 调用 getOrder 能正确读取，updateOrder 能修改字段。
+· 关联任务：卡片04、卡片08、卡片10
+
+---
+
+任务卡片04：自动发货触发器（基础版）
+
+· 目标：在微信回调到达后，主动查询订单状态，若支付成功则自动触发密钥生成、存储、邮件发送、订单状态更新，完成自动发货闭环。
+· 前置条件：卡片02（微信订单查询）、卡片03（订单管理）已完成。
+· 具体步骤：
+  1. 修改 app.js 中的微信回调路由 POST /api/wechatpay/callback/:orderNo。
+  2. 从URL参数 orderNo 获取订单号，保存回调记录到 database/callbacks/。
+  3. 立即返回 { code: 'SUCCESS', message: '成功' } 给微信，避免超时重试。
+  4. 设置 setTimeout 延迟3秒，调用 queryOrder(orderNo) 主动查询订单状态。
+  5. 若 tradeState === 'SUCCESS'：
+     · 通过 orderManager.getOrder(orderNo) 获取本地订单。
+     · 调用 licenseGenerator.generateApiKey(...) 生成密钥。
+     · 调用 licenseStorage.saveLicense(...) 保存密钥。
+     · 调用 orderManager.updateOrder(...) 更新订单状态为 paid，记录 transactionId、payTime、apiKey、licenseExpireAt。
+     · 调用 emailSender.sendApiKeyEmail(...) 发送邮件（此时为模拟发送）。
+  6. 若查询失败或订单状态非成功，记录日志，可后续加入重试逻辑。
+· 输出/验证：
+  · 进行一次真实支付测试，控制台输出“订单支付成功确认”“生成API密钥”“邮件发送成功（模拟）”“自动发货完成”等日志。
+  · 订单JSON文件中 status 变为 paid，并包含 apiKey 字段。
+· 关联任务：卡片05、卡片06、卡片07、卡片09
+
+---
+
+任务卡片05：密钥生成服务
+
+· 目标：提供统一的API密钥生成接口，根据套餐类型生成唯一密钥，并计算过期时间和调用限额。
+· 前置条件：无。
+· 具体步骤：
+  1. 创建 services/license/generator.js 文件。
+  2. 实现 generateApiKey(userId, plan = 'test')：
+     · 格式：ly_${plan}_${userId}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}
+     · 确保每次调用生成不同的密钥。
+  3. 实现 calculateExpiry(plan)：
+     · test: 7天
+     · daily: 1天
+     · monthly: 30天
+     · 返回ISO格式字符串。
+  4. 实现 getCallLimit(plan)：
+     · test: 10次/日
+     · daily: 100次/日
+     · monthly: 1000次/日
+· 输出/验证：
+  · 文件 services/license/generator.js 存在并导出三个函数。
+  · 多次调用 generateApiKey 生成不同字符串，格式符合预期。
+· 关联任务：卡片04、卡片06、卡片11
+
+---
+
+任务卡片06：密钥存储服务
+
+· 目标：将生成的API密钥持久化存储，支持双存储机制（详细记录 + 旧版兼容），确保密钥可追溯。
+· 前置条件：卡片05已完成，项目已规划 database/licenses/ 目录。
+· 具体步骤：
+  1. 创建 services/license/storage.js 文件。
+  2. 实现 saveLicenseRecord(licenseData)：
+     · 存储路径：database/licenses/YYYY-MM-DD.json。
+     · 读取当日文件，追加记录，写回。
+  3. 实现 saveApiKeyLegacy(apiKey, email, paymentId, wxTransactionId)：
+     · 兼容旧版 config/api_keys.json 格式。
+     · 读取现有JSON，新增记录，写回。
+  4. 实现 saveLicense(licenseData)：
+     · 同时调用上述两个函数，完成双存储。
+· 输出/验证：
+  · 文件 services/license/storage.js 存在并导出 saveLicense。
+  · 支付成功后，database/licenses/ 下生成当日JSON文件，包含密钥记录；config/api_keys.json 中也追加了对应密钥。
+· 关联任务：卡片04、卡片10
+
+---
+
+任务卡片07：邮件发送服务（模拟版）
+
+· 目标：实现邮件发送的模拟版本，在开发测试阶段仅将邮件内容打印到控制台并写入日志文件，不进行真实网络发送。
+· 前置条件：无。
+· 具体步骤：
+  1. 创建 services/email/sender.js 文件。
+  2. 实现 sendApiKeyEmail(to, apiKey, plan, expiryDate)：
+     · 在控制台打印清晰的邮件内容（发件人、收件人、主题、HTML正文）。
+     · 将发送记录写入 logs/emails_YYYY-MM-DD.log。
+     · 返回 { success: true }（模拟成功）。
+· 输出/验证：
+  · 文件 services/email/sender.js 存在并导出 sendApiKeyEmail。
+  · 支付成功后，控制台显示完整邮件内容，日志文件有对应记录。
+· 关联任务：卡片04、卡片09
+
+---
+
+任务卡片08：支付确认页完善
+
+· 目标：完善支付确认页面 pay.html，使其能够从URL获取订单参数、自动获取并显示二维码、轮询订单状态、支付成功后展示API密钥。
+· 前置条件：卡片03（订单管理）、卡片04（自动发货）已完成，后端需提供 /api/payment/qrcode/:orderNo 接口。
+· 具体步骤：
+  1. 修改 public/pay.html：
+     · 从 window.location.search 获取 orderId、amount、plan、userId。
+     · 显示订单号、套餐名称、金额（单位转换）。
+  2. 实现 loadQrCode(orderNo)：
+     · 调用 GET /api/payment/qrcode/${orderNo} 获取 qrCodeImage（DataURL），赋值给 <img> 标签。
+     · 若失败则显示降级提示。
+  3. 实现轮询函数 startPolling(orderNo)：
+     · 每3秒调用 /api/payment/query/${userId}，比对订单号，若状态为 paid 则停止轮询，并调用 showStatus 展示密钥。
+  4. 实现确认按钮 confirmPayment()：
+     · 调用 /api/payment/verify 接口，若返回 verified: true 则直接展示密钥。
+  5. 美化页面，添加加载状态、错误处理。
+  6. 后端补充：在 app.js 中添加 GET /api/payment/qrcode/:orderNo 接口，返回订单的 qrCodeImage。
+· 输出/验证：
+  · public/pay.html 能够正确显示二维码、套餐信息。
+  · 支付成功后页面自动展示API密钥。
+· 关联任务：卡片10（用户中心可复用轮询逻辑）
+
+---
+
+任务卡片09：真实邮件服务
+
+· 目标：将模拟邮件发送升级为真实SMTP发送，使用企业邮箱通过腾讯企业邮发送带API密钥的HTML邮件，使用户支付后能立即收到密钥。
+· 前置条件：卡片07（邮件模拟）已完成，已申请企业邮箱 lingyun@lingyunai.cn 并获取SMTP授权码。
+· 具体步骤：
+  1. 在项目根目录创建 .env 文件（不提交到代码库）：
+     ```env
+     SMTP_HOST=smtp.exmail.qq.com
+     SMTP_PORT=465
+     SMTP_SECURE=true
+     SMTP_USER=lingyun@lingyunai.cn
+     SMTP_PASS=3A2K4dYC6hUYmJ4v
+     SMTP_FROM=lingyun@lingyunai.cn
+     ```
+  2. 安装依赖：npm install nodemailer dotenv。
+  3. 修改 services/email/sender.js：
+     · 引入 nodemailer、dotenv（已全局加载）。
+     · 从 process.env 读取SMTP配置，创建 transporter 单例。
+     · 实现 getTransporter() 并进行连接验证。
+     · 重写 sendApiKeyEmail，使用 transporter.sendMail() 发送HTML邮件。
+     · 保留日志记录，错误捕获但不中断主流程。
+  4. 修改 app.js 顶部添加 require('dotenv').config();。
+  5. 将 .env 加入 .gitignore。
+· 输出/验证：
+  · 启动服务，控制台显示 ✅ 邮件服务连接成功。
+  · 进行一次真实支付测试，收件邮箱（目前为 userId，需用户输入真实邮箱）收到来自 lingyun@lingyunai.cn 的HTML格式密钥邮件。
+  · 日志文件记录发送成功信息。
+· 关联任务：卡片10（用户中心需收集用户邮箱）
+
+---
+
+### **任务卡片10：用户中心页面（我的订单）**
+
+- **目标**：为匿名用户提供个人订单中心页面，无需登录即可查看所有历史订单及对应API密钥，支持未支付订单继续支付。
+- **前置条件**：
+  - 卡片03（订单管理服务）已完成，`orderManager.getOrdersByUserId(userId)` 可用。
+  - 卡片04（自动发货）已完成，订单中已包含 `apiKey`、`licenseExpireAt` 等字段。
+  - 前端已实现 `localStorage` 存储 `lingyun_user_id`。
+- **具体步骤**：
+  1. **后端接口**：在 `app.js` 或 `routes/order.js` 中添加 `GET /api/orders/user/:userId`。
+     - 调用 `orderManager.getOrdersByUserId(userId)` 获取该用户所有订单。
+     - 返回精简字段：`orderNo`、`amount`、`plan`、`status`、`createTime`、`payTime`、`apiKey`、`licenseExpireAt`、`qrCodeImage`。
+     - 按创建时间倒序排列。
+  2. **前端页面**：在 `public/` 目录下新建 `dashboard.html`。
+     - 从 `localStorage` 读取 `userId`，若不存在则生成并存储（复用 `index.html` 逻辑）。
+     - 页面加载时调用 `/api/orders/user/${userId}` 获取订单列表。
+     - 使用网格布局渲染订单卡片：
+       - 已支付：显示订单号、套餐、金额、支付时间、过期时间、API密钥（带复制按钮）。
+       - 待支付：显示“待支付”状态，并提供“继续支付”按钮，跳转至 `pay.html` 携带原订单参数。
+     - 无订单时显示空状态提示。
+  3. **首页入口**：在 `index.html` 的快捷操作面板增加“我的订单”按钮，点击跳转至 `dashboard.html`。
+  4. **客服微信占位**：将首页 `showContact()` 中的微信号改为“暂未开通，敬请期待”（待官方微信开通后替换）。
+- **输出/验证**：
+  - 访问 `/dashboard.html` 能正确显示当前匿名用户的所有订单。
+  - 已支付订单密钥可复制，未支付订单点击“继续支付”进入支付页且二维码正确。
+  - 无订单时显示空状态。
+- **关联任务**：卡片11（支付确认页）、卡片12（订单状态查询）、卡片09（邮件服务，暂未关联邮箱）
+
+---
+
+### **任务卡片11：支付确认页轮询升级**
+
+- **目标**：优化支付确认页的用户体验，将原有基于 `/api/payment/query/:userId` 的轮询改为更精确的单订单状态查询，并增加2分钟超时自动提示。
+- **前置条件**：
+  - 卡片08（支付确认页初版）已完成。
+  - 卡片12（订单状态查询接口）需同步实现（可并行）。
+- **具体步骤**：
+  1. **修改 `public/pay.html`**：
+     - 保留从URL获取 `orderId`、`amount`、`plan`、`userId`。
+     - 将轮询接口从 `/api/payment/query/${userId}` 改为 `GET /api/order/status/${orderId}`。
+     - 点击“我已支付完成”按钮时：
+       - 立即调用 `/api/order/status/${orderId}` 查询一次。
+       - 若状态为 `paid`，直接跳转到 `success.html` 并携带订单信息。
+       - 若状态非 `paid`，启动轮询（间隔3秒）并设置2分钟超时计时器。
+     - 轮询期间显示“支付记录尚未同步，系统将在2分钟内自动检测…”的提示。
+     - 超时后停止轮询，显示“支付确认仍在处理中，密钥将在5分钟内发送到您的邮箱”，并允许用户再次点击按钮。
+  2. **新建支付成功页**：在 `public/` 目录下新建 `success.html`。
+     - 从URL参数获取 `orderNo`、`apiKey`、`amount`、`plan`、`payTime`、`expireAt` 并展示。
+     - 提供“复制密钥”按钮和“返回首页”按钮。
+     - 提示“密钥已同时发送至您的邮箱”（目前邮件尚未接入真实收件人，保留文案）。
+- **输出/验证**：
+  - 支付成功后自动跳转至 `success.html`，正确显示密钥和订单信息。
+  - 支付后未立即回调时，点击“我已支付完成”按钮进入轮询，2分钟内支付成功则自动跳转，超时提示友好。
+- **关联任务**：卡片12（订单状态查询接口）、卡片10（用户中心）
+
+---
+
+### **任务卡片12：订单状态查询接口**
+
+- **目标**：提供独立、精确的单订单状态查询接口，供支付确认页轮询及后续业务调用。
+- **前置条件**：卡片03（订单管理服务）已完成，`orderManager.getOrder(orderNo)` 可用。
+- **具体步骤**：
+  1. 在 `routes/order.js` 中添加路由 `GET /order/status/:orderNo`。
+  2. 从 `req.params.orderNo` 获取订单号，调用 `orderManager.getOrder(orderNo)`。
+  3. 若订单不存在，返回 `404`；若存在，返回以下字段：
+     - `orderNo`、`status`、`amount`、`payTime`、`apiKey`、`licenseExpireAt`。
+  4. 错误处理：服务器异常返回 `500`。
+  5. 无需鉴权（匿名用户通过订单号查询）。
+- **输出/验证**：
+  - 使用浏览器或curl访问 `/api/order/status/PAY123...` 能正确返回订单状态。
+  - 支付确认页轮询正常。
+- **关联任务**：卡片11（支付确认页轮询）、卡片10（用户中心详情）
+
+---
+
+### **任务卡片13：路由模块化迁移**
+
+- **目标**：将 `app.js` 中所有业务路由拆分到独立的 `routes/` 目录下，提高代码可维护性和可测试性。
+- **前置条件**：项目已完成所有业务功能，路由集中在 `app.js`。
+- **具体步骤**：
+  1. **创建路由模块**：
+     - `routes/wechat.js`：迁移微信支付相关接口（生成二维码、回调、二维码查询、最新订单查询、支付验证）。
+     - `routes/order.js`：迁移订单相关接口（用户所有订单、订单状态查询、调试订单列表）。
+  2. **迁移逻辑**：
+     - 将 `app.js` 中对应的路由处理函数完整复制到各模块文件中。
+     - 在模块中引入所需依赖（`express`, `orderManager`, `wechatConfig` 等）。
+     - 导出 `router`，在 `app.js` 中通过 `app.use('/api', wechatRoutes)` 和 `app.use('/api', orderRoutes)` 挂载。
+  3. **保留非业务路由**：
+     - 健康检查 `/health`、调试回调 `/debug/callbacks` 仍保留在 `app.js` 中。
+     - 静态文件服务、中间件、SSL配置、启动逻辑保留在 `app.js`。
+  4. **路径修正**：确保各模块中引用其他文件的路径正确（使用 `../` 相对路径）。
+- **输出/验证**：
+  - `app.js` 体积大幅精简，所有业务路由位于 `routes/` 目录下。
+  - 重启服务，所有原有接口功能不变，无404错误。
+- **关联任务**：卡片14（健康检查/调试接口）、卡片15（部署准备）
+
+---
+
+### **任务卡片14：健康检查与调试接口**
+
+- **目标**：增加系统可观测性，便于线上问题排查和运维监控。
+- **前置条件**：无。
+- **具体步骤**：
+  1. **健康检查接口**：在 `app.js` 中添加 `GET /health`。
+     - 返回 JSON：`{ status: 'ok', time: '...', version: '4.0', service: 'lingyun-pay' }`。
+     - 不包含任何敏感信息。
+  2. **本地调试接口**：
+     - 实现 `isLocalIp(ip)` 函数，判断请求是否来自本地（`127.0.0.1`、`::1`）。
+     - `GET /debug/callbacks`：读取 `database/callbacks/` 目录，返回最近10条回调记录（仅限本地访问）。
+     - `GET /debug/orders`：读取 `database/orders/` 目录，返回最近10条订单（仅限本地访问，迁移至 `routes/order.js` 也可，统一管理）。
+  3. **权限控制**：非本地IP请求调试接口返回 `403`。
+- **输出/验证**：
+  - 本地访问 `/health` 返回 `200` 及服务状态。
+  - 本地访问 `/debug/callbacks` 返回最近回调记录，外网访问返回 `403`。
+- **关联任务**：卡片13（路由迁移）、卡片15（部署文档）
+
+---
+
+### **任务卡片15：部署准备与环境标准化**
+
+- **目标**：完成生产环境部署前的准备工作，包括环境变量模板、忽略文件、静态服务确认及部署文档编写。
+- **前置条件**：所有功能卡片已完成，项目结构稳定。
+- **具体步骤**：
+  1. **环境变量模板**：
+     - 在项目根目录创建 `.env.example`，包含所有必需的环境变量占位符（微信支付配置、邮件配置、域名）。
+     - 明确注释各变量的用途，私钥路径默认指向根目录 `./apiclient_key.pem`。
+     - 确保 `.env` 已加入 `.gitignore`。
+  2. **Git忽略文件更新**：
+     - 完善 `.gitignore`，忽略 `database/`、`logs/`、`ssl/*.key`、`ssl/*.crt`、根目录证书 `apiclient_*.pem`、`config/api_keys.json` 等敏感文件。
+  3. **静态文件服务确认**：
+     - `app.js` 中已配置 `app.use(express.static('public'))`，确保所有前端页面可访问。
+  4. **部署文档编写**：
+     - 在 `docs/` 目录下创建 `部署指南.md`。
+     - 包含：环境要求、部署步骤（获取代码、安装依赖、配置环境变量、证书位置、启动命令）、验证方法、已知问题（邮件收件人待接入）、回滚方案。
+  5. **路径标准化**：
+     - 修正 `config/wechat.js` 中私钥路径为 `path.join(__dirname, '../apiclient_key.pem')`，与根目录证书位置对齐。
+     - 所有文件路径均使用 `path.join(__dirname, ...)` 相对路径，确保本地和云端一致。
+- **输出/验证**：
+  - 项目根目录存在 `.env.example` 和完整的 `.gitignore`。
+  - `docs/部署指南.md` 内容详实，可指导新运维人员完成部署。
+  - 在全新服务器上按文档操作，服务可正常启动，支付流程跑通。
+- **关联任务**：卡片13（路由迁移）、卡片14（健康检查）、卡片09（邮件服务）
+卡片编号：任务卡片15.1（集成于卡片15“部署准备”内）
+完成时间：2026-02-12
+涉及文件：
+
+public/pay.html（修改，增加缓存管理及提示条）
+
+public/order-query.html（新增，订单手动查询页）
+
+实现摘要：
+
+支付前缓存：在 pay.html 中，订单生成成功后调用 setPendingOrder(orderId) 存入 localStorage，并记录时间戳。
+
+页面加载检测：任何页面加载时均会检测是否存在有效待支付订单，若存在且与当前订单不同，则在顶部显示非侵入提示条，5秒后自动淡出，用户可手动关闭。
+
+支付成功清除：在轮询检测到订单状态变为 paid 并跳转前，调用 clearPendingOrder() 清除缓存。
+
+手动查询页：独立页面 order-query.html，通过 /api/order/status/:orderNo 接口查询订单状态，已支付订单展示密钥及复制按钮，未支付订单提示待支付。支持URL参数自动填充（如从支付页提示条跳转）。
+
+验证结果：
+
+✅ 支付后关闭页面，再次打开首页/支付页，顶部出现订单处理中提示，点击链接进入查询页。
+
+✅ 支付成功后重新打开页面，提示不再出现（缓存已清除）。
+
+✅ 手动查询页输入有效订单号，可正确显示订单状态及密钥。
+
+✅ 所有修改与现有轮询、邮件发送流程无冲突，无新增错误日志。
+
+任务卡片16：邮件闭环 · 用户真实收信
+目标：修复自动发货流程中邮件发送失败的缺陷，使支付成功后的用户真实收到API密钥邮件，完成“支付 → 发货 → 通知”的完整业务闭环。
+
+前置条件：
+
+卡片09（真实邮件服务）已完成，lingyun@lingyunai.cn 已正确配置SMTP，可正常发信。
+
+卡片04（自动发货）已实现回调触发邮件发送，但收件人错误地为 order.userId（匿名ID），需改为真实邮箱。
+
+项目已稳定，不再进行大规模结构重构，仅增量修改。
+
+设计原则：
+
+邮箱是唯一正式交付通道，前端页面展示仅为辅助。
+
+不改变现有匿名用户体系，仅在下单时额外收集一次邮箱，用于本次订单的发货通知。
+
+邮箱仅作单次使用，不强制建立用户账户，尊重隐私。
+
+具体步骤（三阶段）
+第一阶段：前端收集邮箱（修改 public/index.html）
+方案A（极简弹窗）：在 buyService 函数中，调用支付接口前弹窗询问邮箱，适合快速验证。
+
+方案B（表单增强）：在服务卡片区增加邮箱输入框，更友好。
+推荐方案A，改动最小，代码增量＜10行。
+
+修改位置：public/index.html 中的 buyService 函数。

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>灵云智体 · 支付确认</title>
+    <style>
+        /* 完全沿用现有设计风格，与首页一致 */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { background: linear-gradient(135deg, #2D1B69 0%, #6A5ACD 50%, #9370DB 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 700px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); backdrop-filter: blur(10px); }
+        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 28px; text-align: center; border-bottom: 2px solid #6A5ACD; padding-bottom: 15px; }
+        .order-card { background: #f8fafc; border-radius: 20px; padding: 25px; margin-bottom: 25px; border-left: 6px solid #6A5ACD; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .order-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; }
+        .order-label { color: #4a5568; font-weight: 500; }
+        .order-value { font-weight: 600; color: #2c3e50; }
+        .price { color: #e53e3e; font-size: 22px; font-weight: 700; }
+        .qrcode-section { text-align: center; padding: 20px; background: white; border-radius: 16px; margin-bottom: 25px; border: 1px dashed #cbd5e0; }
+        .qrcode-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #2d3748; }
+        #qrcode-img { width: 220px; height: 220px; margin: 0 auto; border: 10px solid white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .btn-pay { background: linear-gradient(135deg, #6A5ACD, #9370DB); color: white; border: none; padding: 16px 32px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; box-shadow: 0 8px 25px rgba(106,90,205,0.4); }
+        .btn-pay:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(106,90,205,0.6); }
+        .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+        .status-box { padding: 20px; border-radius: 12px; margin-top: 20px; }
+        .status-success { background: #d4edda; color: #155724; border-left: 6px solid #28a745; }
+        .status-waiting { background: #fff3cd; color: #856404; border-left: 6px solid #ffc107; }
+        .status-error { background: #f8d7da; color: #721c24; border-left: 6px solid #dc3545; }
+        .key-box { background: #edf2f7; padding: 15px; border-radius: 8px; font-family: monospace; word-break: break-all; margin-top: 15px; border: 1px solid #cbd5e0; }
+        .footer-tip { margin-top: 20px; color: #718096; font-size: 14px; text-align: center; }
+        .hidden { display: none; }
+        .timer { font-size: 14px; color: #6A5ACD; margin-top: 10px; }
+
+        /* 订单处理中提示条 */
+        .pending-notice {
+            background: #f0f9ff;
+            border-left: 4px solid #1890ff;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: opacity 0.3s;
+        }
+        .pending-notice a {
+            color: #1890ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .pending-notice a:hover {
+            text-decoration: underline;
+        }
+        .pending-notice .close-btn {
+            cursor: pointer;
+            opacity: 0.6;
+            font-size: 18px;
+            margin-left: 12px;
+        }
+        .pending-notice .close-btn:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧾 支付确认</h1>
+        
+        <!-- 订单处理中提示条（动态插入） -->
+        <div id="pendingNoticeContainer"></div>
+
+        <!-- 订单信息卡片 -->
+        <div class="order-card" id="orderInfo">
+            <div class="order-row">
+                <span class="order-label">订单号：</span>
+                <span class="order-value" id="orderNo">加载中...</span>
+            </div>
+            <div class="order-row">
+                <span class="order-label">套餐类型：</span>
+                <span class="order-value" id="planName">加载中...</span>
+            </div>
+            <div class="order-row">
+                <span class="order-label">支付金额：</span>
+                <span class="order-value price" id="amount">0.00</span>
+            </div>
+            <div class="order-row">
+                <span class="order-label">订单状态：</span>
+                <span class="order-value" id="orderStatus">待支付</span>
+            </div>
+        </div>
+
+        <!-- 二维码展示区 -->
+        <div class="qrcode-section" id="qrcodeSection">
+            <div class="qrcode-title">📱 请使用微信扫码支付</div>
+            <img id="qrcode-img" src="" alt="支付二维码">
+            <p style="color:#718096; margin-top: 12px;">二维码有效时间 30 分钟</p>
+        </div>
+
+        <!-- 支付确认按钮 -->
+        <button class="btn-pay" id="confirmBtn" onclick="handleConfirm()">✅ 我已支付完成</button>
+
+        <!-- 状态反馈区域 -->
+        <div id="statusMessage" class="status-box hidden"></div>
+        <div id="timerDisplay" class="timer hidden"></div>
+
+        <div class="footer-tip">
+            ⏱️ 支付后请点击「我已支付完成」，系统将在2分钟内自动确认<br>
+            若长时间未响应，密钥会发送至您的邮箱，也可通过<a href="/order-query.html" style="color:#6A5ACD;">订单查询页</a>手动查询。
+        </div>
+    </div>
+
+    <script>
+        // ---------- 获取URL参数 ----------
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId');
+        const amountParam = urlParams.get('amount');
+        const planParam = urlParams.get('plan') || 'test';
+        const userId = urlParams.get('userId') || localStorage.getItem('lingyun_user_id') || '';
+
+        // 套餐名称映射
+        const planMap = {
+            'test': '测试套餐 (7天有效期)',
+            'daily': '日套餐 (1天有效期)',
+            'monthly': '月套餐 (30天有效期)',
+            'rate': '汇率数据服务',
+            'weather': '天气数据服务',
+            'pdd': '拼多多数据抓取',
+            'shorturl': '短链接生成器'
+        };
+
+        // ---------- 全局变量 ----------
+        let pollTimer = null;
+        let timeoutTimer = null;
+        const POLL_INTERVAL = 3000;     // 3秒
+        const MAX_WAIT_TIME = 120000;   // 2分钟
+        let startTime = null;
+
+        // ========== 缓存管理 ==========
+        const PENDING_ORDER_KEY = 'pendingOrder';
+        const PENDING_TIME_KEY = 'pendingOrderTime';
+        const PENDING_TIMEOUT = 30 * 60 * 1000; // 30分钟
+
+        // 设置待支付订单缓存
+        function setPendingOrder(orderNo) {
+            try {
+                localStorage.setItem(PENDING_ORDER_KEY, orderNo);
+                localStorage.setItem(PENDING_TIME_KEY, Date.now().toString());
+            } catch (e) {
+                console.warn('缓存写入失败:', e);
+            }
+        }
+
+        // 清除待支付订单缓存
+        function clearPendingOrder() {
+            localStorage.removeItem(PENDING_ORDER_KEY);
+            localStorage.removeItem(PENDING_TIME_KEY);
+        }
+
+        // 检查待支付订单缓存是否有效（存在且未超时）
+        function isPendingOrderValid() {
+            const orderNo = localStorage.getItem(PENDING_ORDER_KEY);
+            const timeStr = localStorage.getItem(PENDING_TIME_KEY);
+            if (!orderNo || !timeStr) return null;
+            const time = parseInt(timeStr, 10);
+            if (isNaN(time) || Date.now() - time > PENDING_TIMEOUT) {
+                clearPendingOrder();
+                return null;
+            }
+            return orderNo;
+        }
+
+        // 显示订单处理中提示条
+        function showPendingOrderNotice(orderNo) {
+            const container = document.getElementById('pendingNoticeContainer');
+            if (!container) return;
+
+            // 避免重复插入
+            if (document.getElementById('pending-notice')) return;
+
+            const notice = document.createElement('div');
+            notice.id = 'pending-notice';
+            notice.className = 'pending-notice';
+            notice.innerHTML = `
+                <span style="display:flex; align-items:center; gap:6px;">
+                    🔄 系统检测到您有一笔订单处理中（订单号：<strong>${orderNo}</strong>）
+                    <br>
+                    <small>密钥已发送至您填写的邮箱，请留意查收。若未收到，可<a href="/order-query.html?orderNo=${orderNo}">点击此处</a>手动查询。</small>
+                </span>
+                <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
+            `;
+            container.appendChild(notice);
+
+            // 5秒后自动淡出移除
+            setTimeout(() => {
+                if (notice) {
+                    notice.style.opacity = '0';
+                    setTimeout(() => notice.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // ========== 页面初始化时检查缓存 ==========
+        (function checkPendingOnLoad() {
+            const pendingNo = isPendingOrderValid();
+            if (pendingNo) {
+                // 如果当前页面本身就是该订单的支付页，则不重复提示
+                if (orderId && orderId === pendingNo) {
+                    // 同一订单，不提示，但保留缓存
+                } else {
+                    showPendingOrderNotice(pendingNo);
+                }
+            }
+        })();
+
+        // ---------- 页面初始化 ----------
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!orderId) {
+                showStatus('error', '❌ 订单号缺失，请返回首页重试');
+                return;
+            }
+
+            // 如果当前订单号与缓存的待支付订单不同，则更新缓存（覆盖）
+            // 确保新订单覆盖旧订单，防止缓存错乱
+            setPendingOrder(orderId);
+
+            document.getElementById('orderNo').textContent = orderId;
+            const planDisplay = planMap[planParam] || planParam;
+            document.getElementById('planName').textContent = planDisplay;
+            
+            if (amountParam) {
+                const yuan = (parseInt(amountParam) / 100).toFixed(2);
+                document.getElementById('amount').textContent = `¥${yuan}`;
+            }
+
+            await loadQrCode(orderId);
+        });
+
+        // ---------- 加载二维码 ----------
+        async function loadQrCode(orderNo) {
+            try {
+                let qrData = localStorage.getItem(`qr_${orderNo}`);
+                if (qrData) {
+                    document.getElementById('qrcode-img').src = qrData;
+                    return;
+                }
+
+                const response = await fetch(`/api/payment/qrcode/${orderNo}`);
+                const data = await response.json();
+                if (data.code === 200) {
+                    const qrImage = data.data.qrCodeImage;
+                    document.getElementById('qrcode-img').src = qrImage;
+                    localStorage.setItem(`qr_${orderNo}`, qrImage);
+                } else {
+                    throw new Error(data.message || '获取二维码失败');
+                }
+            } catch (err) {
+                console.error('二维码加载失败:', err);
+                document.getElementById('qrcode-img').style.display = 'none';
+                document.querySelector('.qrcode-title').innerHTML = '⚠️ 二维码加载失败，请刷新重试';
+            }
+        }
+
+        // ---------- 点击“我已支付完成” ----------
+        async function handleConfirm() {
+            const btn = document.getElementById('confirmBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 验证中...';
+
+            stopPolling();
+
+            const result = await queryOrderStatus(orderId);
+            
+            if (result.success) {
+                if (result.data.status === 'paid') {
+                    // 支付成功，清除缓存并跳转
+                    clearPendingOrder();
+                    jumpToSuccess(result.data);
+                    return;
+                } else {
+                    showStatus('warning', '⏳ 支付记录尚未同步，系统将在2分钟内自动检测，请稍候……');
+                    startPolling();
+                    startTimeout();
+                }
+            } else {
+                showStatus('error', `❌ 查询失败：${result.message}`);
+                btn.disabled = false;
+                btn.textContent = '✅ 我已支付完成';
+            }
+        }
+
+        // ---------- 查询订单状态（卡片12接口）----------
+        async function queryOrderStatus(orderNo) {
+            try {
+                const response = await fetch(`/api/order/status/${orderNo}`);
+                const data = await response.json();
+                if (data.code === 200) {
+                    return { success: true, data: data.data };
+                } else {
+                    return { success: false, message: data.message || '未知错误' };
+                }
+            } catch (err) {
+                return { success: false, message: err.message };
+            }
+        }
+
+        // ---------- 开始轮询 ----------
+        function startPolling() {
+            stopPolling();
+            startTime = Date.now();
+
+            pollTimer = setInterval(async () => {
+                const result = await queryOrderStatus(orderId);
+                if (result.success && result.data.status === 'paid') {
+                    clearPendingOrder(); // 支付成功清除缓存
+                    jumpToSuccess(result.data);
+                }
+            }, POLL_INTERVAL);
+        }
+
+        // ---------- 停止轮询 ----------
+        function stopPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            if (timeoutTimer) clearTimeout(timeoutTimer);
+            pollTimer = null;
+            timeoutTimer = null;
+        }
+
+        // ---------- 2分钟超时 ----------
+        function startTimeout() {
+            timeoutTimer = setTimeout(() => {
+                stopPolling();
+                showStatus('warning', '⏳ 支付确认仍在处理中，密钥将在5分钟内发送到您的邮箱。您可关闭本页面或<a href="/order-query.html" style="color:#6A5ACD;">手动查询</a>。');
+                document.getElementById('confirmBtn').disabled = false;
+                document.getElementById('confirmBtn').textContent = '✅ 我已支付完成';
+            }, MAX_WAIT_TIME);
+        }
+
+        // ---------- 跳转到成功页面 ----------
+        function jumpToSuccess(orderData) {
+            stopPolling();
+            const params = new URLSearchParams({
+                orderNo: orderData.orderNo,
+                apiKey: orderData.apiKey || '',
+                amount: amountParam,
+                plan: planParam,
+                payTime: orderData.payTime || '',
+                expireAt: orderData.licenseExpireAt || ''
+            });
+            window.location.href = `/success.html?${params.toString()}`;
+        }
+
+        // ---------- 显示状态消息 ----------
+        function showStatus(type, message) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = 'status-box';
+            if (type === 'success') statusEl.classList.add('status-success');
+            else if (type === 'warning') statusEl.classList.add('status-waiting');
+            else statusEl.classList.add('status-error');
+            statusEl.innerHTML = message;
+            statusEl.classList.remove('hidden');
+        }
+
+        window.addEventListener('beforeunload', stopPolling);
+    </script>
+</body>
+</html>

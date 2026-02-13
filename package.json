@@ -1,0 +1,27 @@
+{
+  "name": "api-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "alipay-sdk": "^4.14.0",
+    "axios": "^1.13.4",
+    "body-parser": "^2.2.2",
+    "body-parser-xml": "^2.0.5",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "express": "^5.2.1",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
+    "node-cache": "^5.1.2",
+    "path": "^0.12.7",
+    "qrcode": "^1.5.4",
+    "xml2js": "^0.6.2"
+  }
+}

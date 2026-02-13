@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>灵云智体 - 智能数据服务平台</title>
+    <style>
+        /* ====== 基础样式（完全保留您的设计） ====== */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { background: linear-gradient(135deg, #2D1B69 0%, #6A5ACD 50%, #9370DB 100%); color: rgba(255,255,255,0.95); min-height: 100vh; padding: 20px; position: relative; overflow-x: hidden; }
+        @keyframes rotateBg { from { transform: rotate(0deg) scale(1.5); } to { transform: rotate(360deg) scale(1.5); } }
+        body::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 100%; background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%); animation: rotateBg 22s linear infinite; z-index: -1; }
+        .bottom-rotate-layer { position: fixed; bottom: -50%; left: -50%; width: 200%; height: 100%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); animation: rotateBg 25s linear reverse infinite; z-index: -1; }
+        @keyframes twinkle { 0%,100% { opacity:0.2; } 50% { opacity:0.4; } }
+        .star-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.5), transparent), radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.4), transparent); animation: twinkle 10s infinite alternate; z-index: -1; }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* ====== Logo区域（完全保留）====== */
+        .logo-container { text-align: center; margin-bottom: 30px; padding: 15px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(15px); border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); position: relative; width: 70%; margin-left: auto; margin-right: auto; }
+        .logo-img { width: 320px; height: 130px; margin: 0 auto 10px; border-radius: 65px; border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; animation: float 6s ease-in-out infinite; }
+        .logo-img img { max-width: 280px; max-height: 100px; border-radius: 50px; transition: all 0.5s ease; }
+        .logo-text { font-size: 32px; font-weight: 300; letter-spacing: 3px; background: linear-gradient(90deg, #FFD700, #DDA0DD, #87CEEB); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 3px 15px rgba(0,0,0,0.4); position: relative; z-index: 2; }
+        .logo-subtitle { font-size: 13px; opacity: 0.9; margin-top: 5px; letter-spacing: 1.5px; position: relative; z-index: 2; }
+        
+        /* ====== 服务卡片（完全保留）====== */
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 30px; }
+        .node-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(15px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.15); border-top: 3px solid var(--card-border-color); transition: all 0.3s ease; position: relative; min-height: 380px; display: flex; flex-direction: column; justify-content: space-between; }
+        .node-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.12); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); }
+        .node-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .node-title { font-size: 20px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--card-text-color); }
+        .node-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; background: var(--card-icon-bg); color: white; }
+        .node-status { padding: 5px 12px; border-radius: 18px; font-size: 13px; font-weight: 500; background: rgba(var(--card-status-rgb), 0.2); color: var(--card-status-color); }
+        .node-description { font-size: 13px; opacity: 0.9; line-height: 1.5; margin-bottom: 20px; color: rgba(255,255,255,0.85); }
+        .node-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .metric { text-align: center; padding: 20px 10px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); color: #FFD700; font-size: 14px; width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .price-tag { font-weight: 700; font-size: 16px; color: #FFD700; }
+        .btn-group { display: flex; gap: 8px; margin-top: 15px; height: 50px; align-items: center; }
+        .btn-main { flex: 1; background: linear-gradient(135deg, #9370DB, #6A5ACD); color: white; border: none; padding: 12px 18px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 15px; box-shadow: 0 8px 25px rgba(106, 90, 205, 0.4); }
+        .btn-main:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(106, 90, 205, 0.6); }
+        .btn-main:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { width: 90px; background: rgba(255, 255, 255, 0.12); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 12px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-3px); }
+        
+        /* ====== 快捷操作面板（完全保留）====== */
+        .summary-panel { background: linear-gradient(135deg, rgba(106, 90, 205, 0.3), rgba(147, 112, 219, 0.3)); border-radius: 25px; padding: 25px; margin-bottom: 30px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25); position: relative; width: 70%; margin-left: auto; margin-right: auto; }
+        .total-income { font-size: 28px; font-weight: 700; margin: 12px 0; background: linear-gradient(90deg, #FFD700, #FF8E53); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .income-label { font-size: 16px; opacity: 0.9; letter-spacing: 1.2px; }
+        .control-panel { display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 12px 25px; border: none; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; min-width: 150px; justify-content: center; }
+        .btn-primary { background: linear-gradient(135deg, #6A5ACD, #9370DB); color: white; box-shadow: 0 8px 25px rgba(106, 90, 205, 0.4); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(106, 90, 205, 0.6); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.12); color: white; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-3px); }
+        
+        /* ====== 页脚（完全保留）====== */
+        .footer { text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.15); font-size: 14px; opacity: 0.8; }
+        .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
+        .footer-link { color: #DDA0DD; text-decoration: none; font-size: 13px; opacity: 0.9; transition: opacity 0.3s; }
+        .footer-link:hover { opacity: 1; text-decoration: underline; }
+        
+        /* ====== ✨✨✨ 新增：自定义邮箱弹窗（居中·毛玻璃·科技紫）✨✨✨ ====== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-box {
+            width: 90%;
+            max-width: 420px;
+            background: rgba(45, 27, 105, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 28px;
+            padding: 32px 28px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            position: relative;
+            color: white;
+        }
+        .modal-overlay.active .modal-box {
+            transform: translateY(0);
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #FFD700, #DDA0DD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-desc {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 16px 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        .modal-input:focus {
+            border-color: #9370DB;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.2);
+        }
+        .modal-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #9370DB, #6A5ACD);
+            color: white;
+            box-shadow: 0 8px 20px rgba(106, 90, 205, 0.4);
+        }
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(106, 90, 205, 0.6);
+        }
+        .modal-btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .modal-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.7);
+            border: none;
+        }
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        .modal-error {
+            color: #FF6B6B;
+            font-size: 13px;
+            margin-top: -12px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .modal-error.show {
+            display: block;
+        }
+        
+        @media (max-width: 992px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { 
+            .dashboard { grid-template-columns: 1fr; } 
+            .btn-group { flex-direction: column; } 
+            .btn-secondary { width: 100%; } 
+            .control-panel { flex-direction: column; align-items: center; } 
+            .btn { width: 100%; }
+            .modal-box { width: 95%; padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bottom-rotate-layer"></div>
+    <div class="star-layer"></div>
+    
+    <div class="container">
+        <!-- Logo区域（完全不变）-->
+        <div class="logo-container">
+            <div class="logo-img" id="logoImg">
+                <img src="https://i.ibb.co/Xr5fpsCL/inedit-1769222508023.jpg" 
+                     alt="灵云智体 Logo" 
+                     onerror="handleLogoError()">
+            </div>
+            <div class="logo-text">灵云智体</div>
+            <div class="logo-subtitle">Lingyun Intelligence · 智能数据服务系统 v4.0 · 模块化架构</div>
+        </div>
+        
+        <!-- 服务卡片（价格文案已更新）-->
+        <div class="dashboard" id="serviceDashboard">
+            <!-- 免费服务卡片（不变）-->
+            <div class="node-card" style="--card-border-color: #2196F3; --card-text-color: #87CEEB; --card-icon-bg: #2196F3; --card-status-rgb: 33,150,243; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">🌐</div><span>IP查询服务</span></div>
+                    <div class="node-status">免费可用</div>
+                </div>
+                <div class="node-description">查询IP归属地、运营商、风险检测，毫秒级响应，无调用次数限制。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">永久免费</div></div>
+                    <div class="metric"><div>响应≤50ms</div></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-main" onclick="useService('ip')">立即使用</button>
+                    <button class="btn-secondary" onclick="verifyCode('ip')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('ip')">功能介绍</button>
+                </div>
+            </div>
+            
+            <div class="node-card" style="--card-border-color: #FF9800; --card-text-color: #FFB74D; --card-icon-bg: #FF9800; --card-status-rgb: 255,152,0; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">📱</div><span>二维码生成</span></div>
+                    <div class="node-status">免费可用</div>
+                </div>
+                <div class="node-description">生成/解析动态二维码，支持自定义logo和颜色，无水印。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">永久免费</div></div>
+                    <div class="metric"><div>响应≤30ms</div></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-main" onclick="useService('qrcode')">立即使用</button>
+                    <button class="btn-secondary" onclick="verifyCode('qrcode')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('qrcode')">功能介绍</button>
+                </div>
+            </div>
+            
+            <div class="node-card" style="--card-border-color: #9C27B0; --card-text-color: #DDA0DD; --card-icon-bg: #9C27B0; --card-status-rgb: 156,39,176; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">🔗</div><span>短链接生成</span></div>
+                    <div class="node-status">免费可用</div>
+                </div>
+                <div class="node-description">长链接转短链接，免费版7天有效，付费版永久有效，支持点击统计。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">免费/9.9元/月</div></div>
+                    <div class="metric"><div>点击/地域分析</div></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-main" onclick="useService('shorturl')">立即使用</button>
+                    <button class="btn-secondary" onclick="verifyCode('shorturl')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('shorturl')">功能介绍</button>
+                </div>
+            </div>
+            
+            <!-- ✅ 付费服务卡片：价格文案已更新为标准定价 -->
+            <div class="node-card" style="--card-border-color: #FF6B6B; --card-text-color: #FF8E53; --card-icon-bg: #FF6B6B; --card-status-rgb: 255,107,107; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">💱</div><span>汇率数据服务</span></div>
+                    <div class="node-status">稳定可用</div>
+                </div>
+                <div class="node-description">全球150+货币对实时汇率查询，毫秒级响应，支持批量调用。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">1.9元/日 · 29.9元/月 · 288元/年</div></div>
+                    <div class="metric"><div>响应≤100ms</div></div>
+                </div>
+                <div class="btn-group">
+                    <!-- ✅ 不再传amount，只传plan标识 -->
+                    <button class="btn-main" onclick="openEmailModal('dual_daily')">立即购买</button>
+                    <button class="btn-secondary" onclick="verifyCode('rate')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('rate')">功能介绍</button>
+                </div>
+            </div>
+            
+            <div class="node-card" style="--card-border-color: #4ECDC4; --card-text-color: #2ECC71; --card-icon-bg: #4ECDC4; --card-status-rgb: 78,205,196; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">🌤️</div><span>天气数据服务</span></div>
+                    <div class="node-status">稳定可用</div>
+                </div>
+                <div class="node-description">全球城市实时天气、24小时预报及空气质量，接口稳定无频次限制。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">1.9元/日 · 29.9元/月 · 288元/年</div></div>
+                    <div class="metric"><div>覆盖200+国家</div></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-main" onclick="openEmailModal('dual_daily')">立即购买</button>
+                    <button class="btn-secondary" onclick="verifyCode('weather')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('weather')">功能介绍</button>
+                </div>
+            </div>
+            
+            <div class="node-card" style="--card-border-color: #E91E63; --card-text-color: #F48FB1; --card-icon-bg: #E91E63; --card-status-rgb: 233,30,99; --card-status-color: #2ecc71;">
+                <div class="node-header">
+                    <div class="node-title"><div class="node-icon">🛒</div><span>拼多多数据</span></div>
+                    <div class="node-status">稳定可用</div>
+                </div>
+                <div class="node-description">商品比价、佣金查询、销量趋势、评价分析，数据实时更新。</div>
+                <div class="node-metrics">
+                    <div class="metric"><div class="price-tag">0.02元/次 · 包周/包月待上线</div></div>
+                    <div class="metric"><div>实时同步</div></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-main" onclick="openEmailModal('pdd_per_request')">立即购买</button>
+                    <button class="btn-secondary" onclick="verifyCode('pdd')">卡密验收</button>
+                    <button class="btn-secondary" onclick="showIntro('pdd')">功能介绍</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 快捷操作面板（完全不变）-->
+        <div class="summary-panel">
+            <div class="income-label">灵云智体 · 智能数据服务平台</div>
+            <div class="total-income">稳定 · 高效 · 安全</div>
+            <div class="income-label">已为800+开发者提供API服务</div>
+            <div class="control-panel">
+                <button class="btn btn-primary" onclick="checkPayment()">💰 查看收款码</button>
+                <button class="btn btn-secondary" onclick="showOrderQuery()">📝 订单查询</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">📋 我的订单</button>
+                <button class="btn btn-secondary" onclick="showContact()">📞 联系客服</button>
+            </div>
+        </div>
+        
+        <!-- 页脚（完全不变）-->
+        <div class="footer">
+            <p>灵云智体数据服务平台 · 服务更新于 <span id="updateTime">--:--:--</span></p>
+            <div class="footer-links">
+                <a href="#" class="footer-link" onclick="showPaymentModal('wechat')">微信支付</a>
+                <a href="#" class="footer-link" onclick="showOrderQuery()">订单查询</a>
+                <a href="#" class="footer-link" onclick="showBusinessUpgrade()">企业服务</a>
+                <a href="#" class="footer-link" onclick="showHelp()">使用帮助</a>
+            </div>
+            <p>© 2026 灵云智体 · 基于云织架构构建 · 营业执照：青羊区婉狸日用百货经营部</p>
+        </div>
+    </div>
+
+    <!-- ====== ✨✨✨ 自定义邮箱弹窗（居中·毛玻璃）✨✨✨ ====== -->
+    <div class="modal-overlay" id="emailModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeEmailModal()">✕</button>
+            <div class="modal-title">
+                <span>📧</span> 接收API密钥
+            </div>
+            <div class="modal-desc">
+                请输入您的邮箱，支付成功后密钥将立即发送至该邮箱。<br>
+                <span style="color: #FFD700; font-size: 12px;">未支付成功不会收到邮件，请放心填写</span>
+            </div>
+            <input type="email" class="modal-input" id="modalEmailInput" placeholder="your@email.com" autocomplete="off">
+            <div class="modal-error" id="modalEmailError">请输入有效的邮箱地址</div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeEmailModal()">取消</button>
+                <button class="modal-btn modal-btn-primary" id="modalConfirmBtn">确认，去支付</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Logo 错误处理（不变）====================
+        function handleLogoError() {
+            const logoImg = document.querySelector('.logo-img img');
+            if (logoImg) {
+                logoImg.src = 'logo_lingyun.png';
+                logoImg.onerror = function() {
+                    document.getElementById('logoImg').innerHTML = '<div style="font-size:24px; color:rgba(255,255,255,0.7); padding:20px;">✨ 灵云智体 ✨</div>';
+                };
+            }
+        }
+        
+        // ==================== 时间更新（不变）====================
+        function updateTime() {
+            document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN');
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        // ==================== 用户身份管理（不变）====================
+        function getUserId() {
+            let userId = localStorage.getItem('lingyun_user_id');
+            if (!userId) {
+                userId = 'anonymous_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                localStorage.setItem('lingyun_user_id', userId);
+            }
+            return userId;
+        }
+        
+        // ==================== ✨✨✨ 新版：自定义弹窗逻辑 ✨✨✨ ====================
+        let currentPlan = ''; // 存储当前正在购买的套餐标识
+        
+        // 打开邮箱弹窗
+        function openEmailModal(plan) {
+            currentPlan = plan;
+            const modal = document.getElementById('emailModal');
+            const input = document.getElementById('modalEmailInput');
+            const error = document.getElementById('modalEmailError');
+            
+            // 清空上次输入和错误状态
+            input.value = '';
+            error.classList.remove('show');
+            
+            // 显示弹窗
+            modal.classList.add('active');
+            
+            // 自动聚焦输入框
+            setTimeout(() => input.focus(), 100);
+        }
+        
+        // 关闭弹窗
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.remove('active');
+            currentPlan = '';
+        }
+        
+        // 邮箱格式验证
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+        
+        // 确认购买（绑定到“确认，去支付”按钮）
+        document.getElementById('modalConfirmBtn').addEventListener('click', async function() {
+            const email = document.getElementById('modalEmailInput').value.trim();
+            const errorEl = document.getElementById('modalEmailError');
+            
+            if (!email) {
+                errorEl.textContent = '邮箱不能为空';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                errorEl.textContent = '邮箱格式不正确，请重新输入';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            // 验证通过，关闭弹窗
+            closeEmailModal();
+            
+            // 执行购买逻辑
+            await executePurchase(currentPlan, email);
+        });
+        
+        // 按回车键也可以提交
+        document.getElementById('modalEmailInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('modalConfirmBtn').click();
+            }
+        });
+        
+        // ==================== 实际购买逻辑（调用后端）====================
+        async function executePurchase(plan, email) {
+            const btn = document.querySelector(`.btn-main[onclick*="${plan}"]`);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ 生成订单...';
+            }
+            
+            const userId = getUserId();
+            
+            try {
+                // ✅ 核心修改：只传 plan 和 email，不再传 amount
+                const response = await fetch('/api/payment/generate-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId, 
+                        plan,
+                        email
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    const orderId = data.data.orderId;
+                    // 跳转到支付页，携带必要参数
+                    window.location.href = `/pay.html?orderId=${orderId}&plan=${plan}&userId=${userId}&email=${encodeURIComponent(email)}`;
+                } else {
+                    alert('订单创建失败：' + (data.message || '未知错误'));
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '立即购买';
+                    }
+                }
+            } catch (err) {
+                alert('网络错误，请稍后重试：' + err.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '立即购买';
+                }
+            }
+        }
+        
+        // ==================== 免费服务（占位，不变）====================
+        function useService(type) {
+            const serviceNames = {
+                ip: 'IP查询服务',
+                qrcode: '二维码生成服务',
+                shorturl: '短链接生成器'
+            };
+            alert(`【${serviceNames[type]}】为免费服务，使用页面正在开发中，敬请期待～`);
+        }
+        
+        // ==================== 卡密验收（模拟，不变）====================
+        function verifyCode(type) {
+            const serviceNames = {
+                rate: '汇率数据服务',
+                weather: '天气数据服务',
+                ip: 'IP查询服务',
+                qrcode: '二维码生成服务',
+                pdd: '拼多多数据抓取',
+                shorturl: '短链接生成器'
+            };
+            const code = prompt(`请输入【${serviceNames[type]}】的激活卡密：`);
+            if (code) {
+                if (code.startsWith('lingyun_')) {
+                    alert('✅ 卡密验证成功！已为您开通服务权限。');
+                } else {
+                    alert('❌ 卡密无效，请检查后重新输入。');
+                }
+            }
+        }
+        
+        // ==================== 功能介绍（不变）====================
+        function showIntro(type) {
+            const intros = {
+                rate: '汇率数据服务：支持全球150+币种实时查询，毫秒级响应，批量调用更优惠，适合跨境电商、财务系统集成。',
+                weather: '天气数据服务：全球200+国家/地区实时天气、24h预报、空气质量数据，接口稳定无频次限制。',
+                ip: 'IP查询服务：免费查询IP归属地、运营商、风险等级，无调用次数限制，开发者调试必备。',
+                qrcode: '二维码生成服务：免费生成/解析动态二维码，支持自定义logo、颜色，无水印，适合营销推广。',
+                pdd: '拼多多数据抓取：商品比价、佣金查询、销量趋势、评价分析，数据实时同步，电商选品神器。',
+                shorturl: '短链接生成器：长链接转短链接，免费版7天有效，付费版永久有效，支持点击统计、地域分析。'
+            };
+            alert(intros[type] || '暂无详细介绍');
+        }
+        
+        // ==================== 其他功能（不变）====================
+        function checkPayment() { alert("收款码已弹出！"); }
+        function showOrderQuery() { alert("订单查询：输入订单号即可查看状态"); }
+        function showContact() { 
+            alert("客服微信：暂未开通，敬请期待"); 
+        }
+        function showPaymentModal() { alert("切换支付方式"); }
+        function showBusinessUpgrade() { alert("企业升级通道即将开放"); }
+        function showHelp() { alert("使用帮助：点击「立即购买」即可下单"); }
+        
+        // 点击弹窗背景关闭（可选）
+        document.getElementById('emailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEmailModal();
+            }
+        });
+    </script>
+</body>
+</html>

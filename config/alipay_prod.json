@@ -1,0 +1,9 @@
+{
+  "app_id": "202100612962732", // 替换成你的正式APPID
+  "gateway": "https://openapi.alipay.com/gateway.do",
+  "notify_url": "https://119424qkkb758.vicp.fun/api/alipay_callback",
+  "return_url": "https://119424qkkb758.vicp.fun/payment_success",
+  "charset": "UTF-8",
+  "sign_type": "RSA2",
+  "version": "1.0"
+}

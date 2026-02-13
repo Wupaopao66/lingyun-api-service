@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵云智体 · 支付成功</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { background: linear-gradient(135deg, #2D1B69 0%, #6A5ACD 50%, #9370DB 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 700px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); backdrop-filter: blur(10px); text-align: center; }
+        .success-icon { font-size: 80px; color: #28a745; margin-bottom: 20px; }
+        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 28px; }
+        .order-card { background: #f8fafc; border-radius: 20px; padding: 25px; margin-bottom: 25px; border-left: 6px solid #28a745; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: left; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; }
+        .info-label { color: #4a5568; font-weight: 500; }
+        .info-value { font-weight: 600; color: #2c3e50; }
+        .api-key-box { background: #edf2f7; padding: 15px; border-radius: 8px; font-family: monospace; word-break: break-all; margin: 20px 0; border: 1px solid #cbd5e0; display: flex; justify-content: space-between; align-items: center; }
+        .copy-btn { background: #6A5ACD; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .copy-btn:hover { background: #9370DB; }
+        .btn-home { background: linear-gradient(135deg, #6A5ACD, #9370DB); color: white; border: none; padding: 14px 28px; border-radius: 50px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 20px; width: 100%; transition: 0.3s; }
+        .btn-home:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(106,90,205,0.5); }
+        .footer-tip { margin-top: 20px; color: #718096; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">🎉</div>
+        <h1>支付成功！</h1>
+        
+        <div class="order-card">
+            <div class="info-row">
+                <span class="info-label">订单号：</span>
+                <span class="info-value" id="orderNo">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">套餐类型：</span>
+                <span class="info-value" id="planName">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">支付金额：</span>
+                <span class="info-value" id="amount">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">支付时间：</span>
+                <span class="info-value" id="payTime">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">过期时间：</span>
+                <span class="info-value" id="expireAt">--</span>
+            </div>
+        </div>
+
+        <div style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;">🔑 您的API密钥</div>
+        <div class="api-key-box">
+            <span id="apiKey" style="word-break: break-all;">--</span>
+            <button class="copy-btn" onclick="copyApiKey()">复制</button>
+        </div>
+        <p style="color: #e53e3e; font-size: 14px; margin-bottom: 10px;">⚠️ 密钥仅显示一次，请妥善保存</p>
+
+        <button class="btn-home" onclick="goHome()">🏠 返回首页</button>
+        <div class="footer-tip">
+            📧 密钥已同时发送至您的邮箱，请注意查收<br>
+            如有问题请联系客服（微信：暂未开通）
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById('orderNo').textContent = params.get('orderNo') || '--';
+        document.getElementById('planName').textContent = {
+            'test': '测试套餐 (7天)',
+            'daily': '日套餐 (1天)',
+            'monthly': '月套餐 (30天)',
+            'rate': '汇率数据服务',
+            'weather': '天气数据服务',
+            'pdd': '拼多多数据抓取',
+            'shorturl': '短链接生成器'
+        }[params.get('plan')] || params.get('plan') || '--';
+        
+        const amount = params.get('amount');
+        document.getElementById('amount').textContent = amount ? `¥${(parseInt(amount)/100).toFixed(2)}` : '--';
+        document.getElementById('payTime').textContent = params.get('payTime') ? new Date(params.get('payTime')).toLocaleString('zh-CN') : '--';
+        document.getElementById('expireAt').textContent = params.get('expireAt') ? new Date(params.get('expireAt')).toLocaleString('zh-CN') : '--';
+        document.getElementById('apiKey').textContent = params.get('apiKey') || '--';
+
+        function copyApiKey() {
+            const key = document.getElementById('apiKey').innerText;
+            navigator.clipboard.writeText(key).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '已复制！';
+                setTimeout(() => btn.textContent = '复制', 2000);
+            });
+        }
+        function goHome() { window.location.href = '/'; }
+    </script>
+</body>
+</html>

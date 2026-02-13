@@ -1,0 +1,33 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+
+# 环境变量
+.env
+
+# 微信支付证书（根目录）
+/apiclient_cert.pem
+/apiclient_key.pem
+/pub_key.pem
+
+# SSL证书（ssl目录）
+/ssl/*.key
+/ssl/*.crt
+/ssl/*.pem
+/ssl/*.csr
+
+# 密钥数据库
+config/api_keys.json
+
+# 数据目录
+database/
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

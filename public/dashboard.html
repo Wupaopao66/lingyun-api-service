@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>灵云智体 · 我的订单</title>
+    <style>
+        /* ====== 完全沿用首页设计风格 ====== */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #2D1B69 0%, #6A5ACD 50%, #9370DB 100%);
+            color: rgba(255,255,255,0.95);
+            min-height: 100vh;
+            padding: 30px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        @keyframes rotateBg { from { transform: rotate(0deg) scale(1.5); } to { transform: rotate(360deg) scale(1.5); } }
+        body::before {
+            content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
+            animation: rotateBg 22s linear infinite; z-index: -1;
+        }
+        .bottom-rotate-layer {
+            position: fixed; bottom: -50%; left: -50%; width: 200%; height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            animation: rotateBg 25s linear reverse infinite; z-index: -1;
+        }
+        .star-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.5), transparent),
+                        radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.4), transparent);
+            animation: twinkle 10s infinite alternate; z-index: -1;
+        }
+        @keyframes twinkle { 0%,100% { opacity:0.2; } 50% { opacity:0.4; } }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* 头部区域 */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 18px 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+        }
+        .page-title {
+            font-size: 26px;
+            font-weight: 500;
+            background: linear-gradient(90deg, #FFD700, #DDA0DD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-id {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* 订单卡片网格 */
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .order-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-top: 3px solid var(--card-border, #6A5ACD);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .order-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.12);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .order-no {
+            font-size: 16px;
+            font-weight: 600;
+            color: #DDA0DD;
+            word-break: break-all;
+        }
+        .status-badge {
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status-paid { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+        .status-pending { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .status-expired { background: rgba(108, 117, 125, 0.2); color: #6c757d; }
+        
+        .order-detail {
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            padding: 8px 0;
+        }
+        .detail-label {
+            opacity: 0.8;
+        }
+        .detail-value {
+            font-weight: 500;
+            color: #FFD700;
+        }
+        
+        .api-key-section {
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 5px;
+            border-left: 4px solid #9370DB;
+        }
+        .api-key-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #DDA0DD;
+            font-size: 14px;
+        }
+        .api-key-box {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .pay-again-btn {
+            background: linear-gradient(135deg, #9370DB, #6A5ACD);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        .pay-again-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(106,90,205,0.5);
+        }
+        
+        .empty-state {
+            background: rgba(255,255,255,0.06);
+            border-radius: 30px;
+            padding: 60px 20px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 18px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            grid-column: 1 / -1;
+        }
+        
+        .footer-tip {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .user-id { max-width: 100%; }
+            .orders-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bottom-rotate-layer"></div>
+    <div class="star-layer"></div>
+    
+    <div class="container">
+        <!-- 头部 -->
+        <div class="dashboard-header">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='/'">
+                    ← 返回首页
+                </button>
+                <span class="page-title">📋 我的订单</span>
+            </div>
+            <div class="user-id" id="userIdDisplay">加载用户ID...</div>
+        </div>
+
+        <!-- 订单列表区域 -->
+        <div id="ordersContainer">
+            <div class="orders-grid" id="ordersGrid">
+                <!-- 动态渲染订单卡片 -->
+            </div>
+        </div>
+
+        <div class="footer-tip">
+            ⚡ 密钥仅显示一次，请妥善保管 | 未支付订单可点击「继续支付」完成交易
+        </div>
+    </div>
+
+    <script>
+        // ========== 获取当前匿名用户ID（与首页完全一致） ==========
+        function getUserId() {
+            let userId = localStorage.getItem('lingyun_user_id');
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                localStorage.setItem('lingyun_user_id', userId);
+            }
+            return userId;
+        }
+
+        const userId = getUserId();
+        document.getElementById('userIdDisplay').innerText = '用户ID: ' + userId;
+
+        // ========== 格式化金额（分 → 元） ==========
+        function formatAmount(amount) {
+            if (amount === undefined || amount === null) return '0.00';
+            return (amount / 100).toFixed(2);
+        }
+
+        // ========== 格式化日期 ==========
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', { hour12: false });
+        }
+
+        // ========== 复制密钥 ==========
+        function copyApiKey(apiKey, btnElement) {
+            navigator.clipboard.writeText(apiKey).then(() => {
+                const originalText = btnElement.innerText;
+                btnElement.innerText = '已复制！';
+                setTimeout(() => { btnElement.innerText = originalText; }, 2000);
+            }).catch(() => {
+                alert('复制失败，请手动选择复制');
+            });
+        }
+
+        // ========== 继续支付（跳转到支付页） ==========
+        function continuePay(orderNo, amount, plan) {
+            window.location.href = `/pay.html?orderId=${orderNo}&amount=${amount}&plan=${plan}&userId=${userId}`;
+        }
+
+        // ========== 加载订单数据 ==========
+        async function loadOrders() {
+            const grid = document.getElementById('ordersGrid');
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:rgba(255,255,255,0.7);">⏳ 加载订单中...</div>';
+
+            try {
+                const response = await fetch(`/api/orders/user/${userId}`);
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    const orders = result.data.orders;
+                    if (!orders || orders.length === 0) {
+                        grid.innerHTML = '<div class="empty-state">📭 您还没有任何订单，快去购买体验吧~</div>';
+                        return;
+                    }
+
+                    // 渲染订单卡片
+                    let html = '';
+                    orders.forEach(order => {
+                        const isPaid = order.status === 'paid';
+                        const statusClass = isPaid ? 'status-paid' : 'status-pending';
+                        const statusText = isPaid ? '✅ 已支付' : '⏳ 待支付';
+                        const borderColor = isPaid ? '#2ecc71' : '#ffc107';
+
+                        html += `<div class="order-card" style="--card-border: ${borderColor};">`;
+                        html += `<div class="order-header">`;
+                        html += `<span class="order-no" title="${order.orderNo}">${order.orderNo.slice(0, 16)}...</span>`;
+                        html += `<span class="status-badge ${statusClass}">${statusText}</span>`;
+                        html += `</div>`;
+
+                        html += `<div class="order-detail">`;
+                        html += `<div class="detail-row"><span class="detail-label">📦 套餐</span><span class="detail-value">${order.plan || 'test'}</span></div>`;
+                        html += `<div class="detail-row"><span class="detail-label">💰 金额</span><span class="detail-value">¥${formatAmount(order.amount)}</span></div>`;
+                        html += `<div class="detail-row"><span class="detail-label">🕐 下单时间</span><span class="detail-value">${formatDate(order.createTime)}</span></div>`;
+                        
+                        if (isPaid) {
+                            html += `<div class="detail-row"><span class="detail-label">💳 支付时间</span><span class="detail-value">${formatDate(order.payTime)}</span></div>`;
+                            if (order.licenseExpireAt) {
+                                html += `<div class="detail-row"><span class="detail-label">⏳ 过期时间</span><span class="detail-value">${formatDate(order.licenseExpireAt)}</span></div>`;
+                            }
+                        }
+                        html += `</div>`;
+
+                        // 密钥区域（仅已支付显示）
+                        if (isPaid && order.apiKey) {
+                            html += `<div class="api-key-section">`;
+                            html += `<div class="api-key-title">🔑 API 密钥</div>`;
+                            html += `<div class="api-key-box">`;
+                            html += `<span style="word-break:break-all;">${order.apiKey}</span>`;
+                            html += `<button class="copy-btn" onclick="copyApiKey('${order.apiKey}', this)">复制</button>`;
+                            html += `</div>`;
+                            html += `</div>`;
+                        }
+
+                        // 未支付：显示继续支付按钮
+                        if (!isPaid) {
+                            html += `<button class="pay-again-btn" onclick="continuePay('${order.orderNo}', ${order.amount}, '${order.plan}')">💳 继续支付</button>`;
+                        }
+
+                        html += `</div>`;
+                    });
+                    grid.innerHTML = html;
+                } else {
+                    grid.innerHTML = `<div class="empty-state">❌ 加载失败：${result.message || '未知错误'}</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = `<div class="empty-state">❌ 网络错误，请稍后重试</div>`;
+            }
+        }
+
+        // 页面加载立即拉取订单
+        window.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

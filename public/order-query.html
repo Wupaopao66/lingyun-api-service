@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>灵云智体 · 订单查询</title>
+    <style>
+        /* 沿用支付成功页风格，保持品牌统一 */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { background: linear-gradient(135deg, #2D1B69 0%, #6A5ACD 50%, #9370DB 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 700px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); backdrop-filter: blur(10px); }
+        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 28px; text-align: center; border-bottom: 2px solid #6A5ACD; padding-bottom: 15px; }
+        .subtitle { text-align: center; color: #718096; font-size: 14px; margin-bottom: 25px; }
+        .search-box { display: flex; gap: 12px; margin-bottom: 30px; }
+        .search-box input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-box input:focus {
+            border-color: #6A5ACD;
+            box-shadow: 0 0 0 3px rgba(106,90,205,0.1);
+        }
+        .search-box button {
+            background: linear-gradient(135deg, #6A5ACD, #9370DB);
+            color: white;
+            border: none;
+            padding: 0 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 8px 25px rgba(106,90,205,0.4);
+        }
+        .search-box button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(106,90,205,0.6);
+        }
+        .search-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .order-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 25px;
+            border-left: 6px solid #6A5ACD;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: none;
+        }
+        .order-card.show { display: block; }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .info-label { color: #4a5568; font-weight: 500; }
+        .info-value { font-weight: 600; color: #2c3e50; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-paid { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-expired { background: #e2e8f0; color: #4a5568; }
+        .key-box {
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 15px;
+            border: 1px solid #cbd5e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-btn {
+            background: #6A5ACD;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .copy-btn:hover { background: #9370DB; }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 6px solid #dc3545;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-message.show { display: block; }
+        .footer-tip {
+            margin-top: 30px;
+            color: #718096;
+            font-size: 14px;
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #6A5ACD;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 订单查询</h1>
+        <div class="subtitle">输入订单号，即可查看支付状态及API密钥</div>
+
+        <div class="search-box">
+            <input type="text" id="orderNoInput" placeholder="请输入订单号，如 PAY1738123456..." autocomplete="off">
+            <button id="queryBtn" onclick="handleQuery()">查询</button>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <!-- 订单详情卡片 -->
+        <div id="orderResult" class="order-card">
+            <div class="info-row">
+                <span class="info-label">订单号：</span>
+                <span class="info-value" id="orderNoDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">订单状态：</span>
+                <span class="info-value" id="statusDisplay">
+                    <span id="statusBadge" class="status-badge">--</span>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">套餐类型：</span>
+                <span class="info-value" id="planDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">支付金额：</span>
+                <span class="info-value" id="amountDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">下单时间：</span>
+                <span class="info-value" id="createTimeDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">支付时间：</span>
+                <span class="info-value" id="payTimeDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">过期时间：</span>
+                <span class="info-value" id="expireAtDisplay">--</span>
+            </div>
+
+            <div id="keySection" style="display: none;">
+                <div style="font-weight: 600; margin-top: 20px; margin-bottom: 10px;">🔑 API密钥</div>
+                <div class="key-box">
+                    <span id="apiKeyDisplay" style="word-break: break-all;">--</span>
+                    <button class="copy-btn" onclick="copyApiKey()">复制</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/" class="back-link">← 返回首页</a>
+        </div>
+        <div class="footer-tip">
+            📧 密钥会发送至您支付时填写的邮箱，请优先查收邮件<br>
+            如长时间未收到，可通过此页面手动查询
+        </div>
+    </div>
+
+    <script>
+        // 套餐名称映射
+        const planMap = {
+            'test': '测试套餐 (7天)',
+            'daily': '日套餐 (1天)',
+            'monthly': '月套餐 (30天)',
+            'rate': '汇率数据服务',
+            'weather': '天气数据服务',
+            'pdd': '拼多多数据抓取',
+            'shorturl': '短链接生成器'
+        };
+
+        // 页面加载时，从URL参数自动填充订单号
+        (function autoFillFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNo = urlParams.get('orderNo');
+            if (orderNo) {
+                document.getElementById('orderNoInput').value = orderNo;
+                handleQuery();
+            }
+        })();
+
+        async function handleQuery() {
+            const orderNo = document.getElementById('orderNoInput').value.trim();
+            if (!orderNo) {
+                showError('请输入订单号');
+                return;
+            }
+
+            const btn = document.getElementById('queryBtn');
+            btn.disabled = true;
+            btn.textContent = '查询中...';
+            hideError();
+            hideResult();
+
+            try {
+                const response = await fetch(`/api/order/status/${orderNo}`);
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    renderOrder(data.data);
+                } else {
+                    showError(data.message || '订单不存在或查询失败');
+                }
+            } catch (err) {
+                showError('网络错误，请稍后重试');
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '查询';
+            }
+        }
+
+        function renderOrder(order) {
+            // 订单号
+            document.getElementById('orderNoDisplay').textContent = order.orderNo;
+
+            // 状态
+            const statusMap = {
+                'paid': '✅ 已支付',
+                'pending': '⏳ 待支付',
+                'expired': '⌛ 已过期',
+                'failed': '❌ 支付失败'
+            };
+            const statusText = statusMap[order.status] || order.status;
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = statusText;
+            badge.className = 'status-badge';
+            if (order.status === 'paid') badge.classList.add('status-paid');
+            else if (order.status === 'pending') badge.classList.add('status-pending');
+            else badge.classList.add('status-expired');
+
+            // 套餐
+            document.getElementById('planDisplay').textContent = planMap[order.plan] || order.plan;
+            // 金额
+            const amount = order.amount ? `¥${(order.amount / 100).toFixed(2)}` : '--';
+            document.getElementById('amountDisplay').textContent = amount;
+            // 时间
+            document.getElementById('createTimeDisplay').textContent = order.createTime ? new Date(order.createTime).toLocaleString('zh-CN') : '--';
+            document.getElementById('payTimeDisplay').textContent = order.payTime ? new Date(order.payTime).toLocaleString('zh-CN') : '--';
+            document.getElementById('expireAtDisplay').textContent = order.licenseExpireAt ? new Date(order.licenseExpireAt).toLocaleString('zh-CN') : '--';
+
+            // 密钥
+            const keySection = document.getElementById('keySection');
+            if (order.status === 'paid' && order.apiKey) {
+                document.getElementById('apiKeyDisplay').textContent = order.apiKey;
+                keySection.style.display = 'block';
+            } else {
+                keySection.style.display = 'none';
+            }
+
+            // 显示卡片
+            document.getElementById('orderResult').classList.add('show');
+        }
+
+        function copyApiKey() {
+            const key = document.getElementById('apiKeyDisplay').innerText;
+            navigator.clipboard.writeText(key).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '已复制！';
+                setTimeout(() => btn.textContent = '复制', 2000);
+            }).catch(() => {
+                alert('复制失败，请手动复制');
+            });
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = msg;
+            el.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        function hideResult() {
+            document.getElementById('orderResult').classList.remove('show');
+        }
+
+        // 支持回车查询
+        document.getElementById('orderNoInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleQuery();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "key_1769338787892_y1mlt0p1k": {
+    "email": "test@yunzh.com",
+    "created": "2026-01-25T10:59:47.892Z",
+    "calls": 0,
+    "status": "active",
+    "lastUsed": null
+  },
+  "key_1769354894727_ubunb2f03": {
+    "email": "test@yunzh.com",
+    "created_at": "2026-01-25T15:28:14.730Z",
+    "expires_at": "2026-02-24T15:28:14.730Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "test_20260126_001",
+    "wx_transaction_id": "420000202601261234567890",
+    "last_used": null
+  },
+  "key_1769522933557_244apcbve": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:08:53.561Z",
+    "expires_at": "2026-02-26T14:08:53.561Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769522933550",
+    "last_used": null
+  },
+  "key_1769522937806_ub6gvtj32": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:08:57.807Z",
+    "expires_at": "2026-02-26T14:08:57.807Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769522937802",
+    "last_used": null
+  },
+  "key_1769522938412_h0upcmhsb": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:08:58.413Z",
+    "expires_at": "2026-02-26T14:08:58.413Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769522938409",
+    "last_used": null
+  },
+  "key_1769522938646_grzftxfjv": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:08:58.648Z",
+    "expires_at": "2026-02-26T14:08:58.648Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769522938642",
+    "last_used": null
+  },
+  "key_1769523021651_o8ucdw5r0": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:10:21.652Z",
+    "expires_at": "2026-02-26T14:10:21.652Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769523021646",
+    "last_used": null
+  },
+  "key_1769523022413_812fbbwfd": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:10:22.414Z",
+    "expires_at": "2026-02-26T14:10:22.414Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "sim_1769523022411",
+    "last_used": null
+  },
+  "key_1769523094917_8xnxbij25": {
+    "email": "wf3846617@126.com",
+    "created_at": "2026-01-27T14:11:34.918Z",
+    "expires_at": "2026-02-26T14:11:34.918Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "wx_1769522928816_pwkujj",
+    "wx_transaction_id": "wx1234567890",
+    "last_used": null
+  }
+}
