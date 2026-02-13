@@ -1,56 +1,84 @@
 #!/usr/bin/env node
-// =============== 密钥同步脚本（适配数组格式 api_keys.json）===============
-// 作用：读取 config/api_keys.json（数组），过滤未过期密钥，输出压缩JSON供Vercel环境变量
-// 输出格式：{"真实密钥1":{"expires_at":"...","email":"...","plan":"..."}, ...}
-// 使用：node sync-keys-to-vercel.js，复制整行输出，粘贴到 Vercel VALID_API_KEYS
-
+// =============== 密钥同步脚本（兼容对象/数组格式）===============
 const fs = require('fs');
 const path = require('path');
 
-// 1. 读取 config/api_keys.json（数组格式）
 const apiKeysPath = path.join(__dirname, '../config/api_keys.json');
-let keysArray = [];
+let rawData;
 
 try {
-    const data = fs.readFileSync(apiKeysPath, 'utf8');
-    keysArray = JSON.parse(data);
-    if (!Array.isArray(keysArray)) {
-        console.error('❌ 错误：api_keys.json 不是数组格式，请检查文件结构');
-        process.exit(1);
-    }
+    rawData = fs.readFileSync(apiKeysPath, 'utf8');
 } catch (err) {
     console.error('❌ 读取 api_keys.json 失败:', err.message);
-    console.error('   请确认文件存在且格式正确');
     process.exit(1);
 }
 
-// 2. 过滤未过期的密钥，转换为 Vercel 需要的键值对对象
+// 解析 JSON，兼容对象和数组格式
+let keysArray = [];
+let keysObject = {};
+
+try {
+    const parsed = JSON.parse(rawData);
+    if (Array.isArray(parsed)) {
+        // 数组格式：转换为对象格式（以 key 为键）
+        keysArray = parsed;
+        parsed.forEach(item => {
+            if (item.key) keysObject[item.key] = { ...item };
+        });
+    } else if (parsed && typeof parsed === 'object') {
+        // 对象格式：直接使用
+        keysObject = parsed;
+        // 同时构建数组（便于过滤）
+        keysArray = Object.entries(parsed).map(([key, value]) => ({ key, ...value }));
+    } else {
+        throw new Error('JSON 既不是数组也不是对象');
+    }
+} catch (err) {
+    console.error('❌ 解析 api_keys.json 失败:', err.message);
+    process.exit(1);
+}
+
+// 过滤未过期密钥
 const now = new Date();
 const validKeys = {};
 
 keysArray.forEach(item => {
-    // 兼容两种可能的字段名：expiresAt 或 expires_at
-    const expireStr = item.expiresAt || item.expires_at;
-    if (!expireStr) {
-        console.warn(`⚠️ 密钥 ${item.key || '未知'} 缺少过期时间字段，跳过`);
-        return;
-    }
-
+    const expireStr = item.expires_at || item.expiresAt;
+    if (!expireStr) return;
     const expire = new Date(expireStr);
     if (expire > now) {
-        // ✅ 核心：以真实密钥字符串作为键
-        validKeys[item.key] = {
-            expires_at: expire.toISOString(),   // 统一 ISO 字符串
-            email: item.email || '',
-            plan: item.plan || 'unknown',       // 暂填 unknown，后续可补充
-            // 可在此处添加更多字段（如 call_limit），Vercel 网关需要时可读取
-        };
+        // 使用 item.key 或从对象中推断键
+        const key = item.key || (() => {
+            // 如果是对象格式，键已在 keysObject 中，但我们遍历的是数组，所以此处不会执行
+            return null;
+        })();
+        if (key) {
+            validKeys[key] = {
+                expires_at: expire.toISOString(),
+                email: item.email || '',
+                plan: item.plan || 'unknown'
+            };
+        }
     }
 });
 
-// 3. 输出压缩纯文本 JSON（无换行缩进）
-const output = JSON.stringify(validKeys);
+// 如果上面没取到 key（可能是对象格式遍历时没构建 key 字段），则从 keysObject 直接取
+if (Object.keys(validKeys).length === 0 && Object.keys(keysObject).length > 0) {
+    Object.entries(keysObject).forEach(([key, info]) => {
+        const expireStr = info.expires_at || info.expiresAt;
+        if (!expireStr) return;
+        const expire = new Date(expireStr);
+        if (expire > now) {
+            validKeys[key] = {
+                expires_at: expire.toISOString(),
+                email: info.email || '',
+                plan: info.plan || 'unknown'
+            };
+        }
+    });
+}
 
+const output = JSON.stringify(validKeys);
 console.log('\n' + '='.repeat(60));
 console.log('✅ 以下为当前有效的密钥列表（压缩纯文本格式）');
 console.log('='.repeat(60));

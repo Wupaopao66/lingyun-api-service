@@ -20,7 +20,7 @@ package-lock.json
 /ssl/*.csr
 
 # 密钥数据库
-config/api_keys.json
+# config/api_keys.json
 
 # 数据目录
 database/
