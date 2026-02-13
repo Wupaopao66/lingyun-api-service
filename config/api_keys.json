@@ -1,0 +1,12 @@
+{
+  "ly_test_anonymous_1770954482650_7u94ov_1770988004543_c277d369": {
+    "email": "anonymous_1770954482650_7u94ov",
+    "created_at": "2026-02-13T13:06:44.546Z",
+    "expires_at": "2026-02-20T13:06:44.543Z",
+    "call_limit": 100,
+    "calls_used": 0,
+    "payment_id": "PAY17709879868624446",
+    "wx_transaction_id": "4200002973202602133689256135",
+    "last_used": null
+  }
+}
