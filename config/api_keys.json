@@ -288,5 +288,15 @@
     "payment_id": "manual_1771751149644",
     "wx_transaction_id": null,
     "last_used": null
+  },
+  "ly_custom_168_manual_1771752937530_7yle_1771752937530_082b7c53": {
+    "email": "manual_1771752937530_7yle",
+    "created_at": "2026-02-22T09:35:37.532Z",
+    "expires_at": "2026-03-24T09:35:37.530Z",
+    "daily_limit": 50000,
+    "monthly_limit": 500000,
+    "payment_id": "manual_1771752937530",
+    "wx_transaction_id": null,
+    "last_used": null
   }
 }
