@@ -198,5 +198,15 @@
     "payment_id": "manual_1771750224623",
     "wx_transaction_id": null,
     "last_used": null
+  },
+  "ly_custom_168_manual_1771750225949_jkfx_1771750225949_60c35911": {
+    "email": "manual_1771750225949_jkfx",
+    "created_at": "2026-02-22T08:50:25.951Z",
+    "expires_at": "2026-03-24T08:50:25.949Z",
+    "daily_limit": 50000,
+    "monthly_limit": 500000,
+    "payment_id": "manual_1771750225949",
+    "wx_transaction_id": null,
+    "last_used": null
   }
 }
